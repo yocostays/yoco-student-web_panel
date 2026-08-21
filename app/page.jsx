@@ -1,4 +1,4 @@
-import ParentApproval from "@/component/parent_approval";
+import ParentApproval from "@/components/parent-approval/ParentApproval";
 
 export default function Home() {
   return <ParentApproval />;

@@ -1,5 +1,5 @@
 @import "tailwindcss";
-@source "../component/**.{js,ts,jsx,tsx}";
+@source "../components/**.{js,ts,jsx,tsx}";
 
 /* Tailwind v4 defaults dark: to OS prefers-color-scheme.
    Bind it to .dark on <html> so yoco-theme controls light/dark. */
@@ -49,10 +49,29 @@
 
 html,
 body {
-  overflow-x: hidden;
   max-width: 100%;
+  min-height: 100%;
+  overflow-x: hidden;
   background-color: var(--yoco-page-bg);
   color: var(--yoco-text);
+  -webkit-text-size-adjust: 100%;
+  touch-action: manipulation;
+}
+
+@media (min-width: 1024px) {
+  html,
+  body {
+    height: 100%;
+    overflow: hidden;
+  }
+}
+
+button,
+a,
+[role="button"] {
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: rgb(103 77 159 / 0.18);
 }
 
 input[type="checkbox"] {
@@ -587,5 +606,26 @@ html.dark .yoco-filter-chip--default:hover:not(:disabled) {
 @media (min-width: 640px) {
   .yoco-table-toolbar-actions {
     gap: 0.75rem;
+  }
+}
+
+@keyframes cta-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(103 77 159 / 0.45);
+  }
+
+  50% {
+    box-shadow: 0 0 0 6px rgb(103 77 159 / 0);
+  }
+}
+
+.cta-blink {
+  animation: cta-pulse 2.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cta-blink {
+    animation: none;
   }
 }

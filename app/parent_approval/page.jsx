@@ -1,13 +1,5 @@
-"use client"
-import ParentApproval from '@/component/parent_approval'
-import React from 'react'
+import ParentApproval from "@/components/parent-approval/ParentApproval";
 
-const page = () => {
-  return (
-    <div>
-        <ParentApproval/>
-    </div>
-  )
+export default function ParentApprovalPage() {
+  return <ParentApproval />;
 }
-
-export default page

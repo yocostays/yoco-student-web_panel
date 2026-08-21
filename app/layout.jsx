@@ -7,8 +7,15 @@ const quicksand = Quicksand({
 });
 
 export const metadata = {
-  title: "Student Panel",
-  description: "Student panel",
+  title: "Leave Request",
+  description: "Review and approve a student leave request",
+};
+
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#674d9f",
 };
 
 export default function RootLayout({ children }) {
