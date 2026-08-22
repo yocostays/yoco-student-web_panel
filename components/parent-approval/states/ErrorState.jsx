@@ -1,4 +1,6 @@
+import DownloadAppButton from "../DownloadAppButton";
 import PageShell from "../PageShell";
+import PlayStoreCta from "../PlayStoreCta";
 
 export default function ErrorState({
   title = "Unable to open this request",
@@ -7,7 +9,7 @@ export default function ErrorState({
 }) {
   return (
     <PageShell>
-      <section className="max-h-full w-full max-w-[480px] overflow-y-auto rounded-2xl bg-white px-5 py-8 text-center shadow-[0_8px_24px_var(--yoco-shadow)]">
+      <section className="flex min-h-0 w-full max-w-[480px] flex-1 basis-0 flex-col justify-center overflow-y-auto rounded-2xl bg-white px-5 py-4 text-center shadow-[0_8px_24px_var(--yoco-shadow)] lg:h-full lg:flex-none lg:basis-auto lg:py-8">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#fde8e8] text-lg font-bold text-[#c0392b]">
           !
         </div>
@@ -24,7 +26,9 @@ export default function ErrorState({
             Try again
           </button>
         ) : null}
+        <DownloadAppButton className="mt-5 lg:hidden" />
       </section>
+      <PlayStoreCta />
     </PageShell>
   );
 }

@@ -14,6 +14,9 @@ export default function PlayStoreCta({ firstName }) {
             width={559}
             height={836}
             decoding="async"
+            loading="lazy"
+            fetchPriority="low"
+            draggable={false}
             className="pointer-events-none block h-full w-full scale-105 object-cover object-top blur-[3px] lg:blur-[5px]"
           />
 

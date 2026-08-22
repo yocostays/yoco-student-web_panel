@@ -78,6 +78,9 @@ export default function LeaveRequestCard({
             <div className="mt-1.5 grid grid-cols-2 gap-x-3 gap-y-1.5 lg:mt-3 lg:gap-y-3">
               <InfoItem label="Category" value={view.categoryName} />
               <InfoItem label="Leave type" value={view.leaveType} />
+              {view.pendingFrom ? (
+                <InfoItem label="Pending from" value={view.pendingFrom} />
+              ) : null}
               <InfoItem
                 className="hidden lg:block"
                 label="Duration"
@@ -141,7 +144,7 @@ export default function LeaveRequestCard({
           <DownloadAppButton className="mt-2 min-h-10 text-sm" />
         </div>
       ) : (
-        <div className="relative z-[9999] shrink-0 rounded-b-2xl bg-white px-3 py-2 lg:hidden">
+        <div className="relative z-20 shrink-0 rounded-b-2xl bg-white px-3 py-2 lg:hidden">
           <DownloadAppButton className="min-h-10 text-sm" />
         </div>
       )}

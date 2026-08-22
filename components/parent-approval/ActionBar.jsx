@@ -12,7 +12,7 @@ export default function ActionBar({ disabled, onReject, onApprove }) {
         type="button"
         disabled={disabled}
         onClick={() => onReject?.(PARENT_DECISION.REJECTED)}
-        className={`${shared} border-2 border-[#e74c3c] bg-white text-[#e74c3c] disabled:opacity-50`}
+        className={`${shared} border-2 border-[#e74c3c] bg-white text-[#e74c3c] disabled:pointer-events-none disabled:opacity-50`}
       >
         Reject
       </button>
@@ -20,7 +20,7 @@ export default function ActionBar({ disabled, onReject, onApprove }) {
         type="button"
         disabled={disabled}
         onClick={() => onApprove?.(PARENT_DECISION.APPROVED)}
-        className={`${shared} bg-[var(--yoco-primary)] text-white disabled:opacity-50`}
+        className={`${shared} bg-[var(--yoco-primary)] text-white disabled:pointer-events-none disabled:opacity-50`}
       >
         Approve
       </button>

@@ -1,7 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { getLeaveDetails, updateParentStatus, USE_MOCK } from "@/lib/api";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  decideParentApproval,
+  ERROR_KIND,
+  getParentApprovalDetails,
+} from "@/lib/api";
 import { PARENT_DECISION, UI_PREVIEW } from "@/lib/constants";
 import { mapLeaveToView } from "@/lib/mapLeaveToView";
 import { mockLeaveApproved, mockLeavePending } from "@/lib/mockLeave";
@@ -14,14 +18,19 @@ import LoadingState from "./states/LoadingState";
 import ProcessedState from "./states/ProcessedState";
 import SuccessState from "./states/SuccessState";
 
+const IS_DEV = process.env.NODE_ENV !== "production";
+
+const INVALID_LINK_MESSAGE =
+  "This link is invalid, expired, or the leave request could not be loaded. Ask the hostel to send a new SMS.";
+
 function readQuery() {
   if (typeof window === "undefined") {
     return { token: "", preview: "" };
   }
   const params = new URLSearchParams(window.location.search);
   return {
-    token: params.get("token") || "",
-    preview: String(params.get("preview") || "").toLowerCase(),
+    token: (params.get("token") || "").trim(),
+    preview: IS_DEV ? String(params.get("preview") || "").toLowerCase() : "",
   };
 }
 
@@ -30,38 +39,60 @@ function applyDecisionToView(view, decision) {
   return {
     ...view,
     leaveStatus,
+    pendingFrom: "",
     statusLabel: leaveStatus.toUpperCase(),
     canAct: false,
   };
 }
 
-function PendingRequest({
-  view,
-  token,
-  onError,
-}) {
+function ApprovalError({ kind, message, onRetry }) {
+  const canRetry = kind === ERROR_KIND.GENERIC;
+  return (
+    <ErrorState
+      message={message || INVALID_LINK_MESSAGE}
+      onRetry={canRetry ? onRetry : undefined}
+    />
+  );
+}
+
+function PendingRequest({ view, token, onError }) {
   const [pendingDecision, setPendingDecision] = useState(null);
   const [decision, setDecision] = useState(null);
   const [resultView, setResultView] = useState(view);
   const [showInfo, setShowInfo] = useState(false);
   const [busy, setBusy] = useState(false);
+  const submittingRef = useRef(false);
 
   async function handleConfirm(remark) {
-    if (!pendingDecision || busy) return;
+    if (!pendingDecision || busy || submittingRef.current) return;
+    submittingRef.current = true;
     setBusy(true);
     try {
-      const result = await updateParentStatus(token, pendingDecision, remark);
+      const result = await decideParentApproval({
+        token,
+        action: pendingDecision,
+        remark: remark || "",
+      });
+      if (result.aborted) return;
       if (!result.ok) {
-        onError(result.message || "Unable to update leave status.");
+        submittingRef.current = false;
+        setBusy(false);
+        onError(
+          result.kind || ERROR_KIND.GENERIC,
+          result.message || "Unable to update leave status."
+        );
         return;
       }
       setResultView(applyDecisionToView(view, pendingDecision));
       setDecision(pendingDecision);
       setPendingDecision(null);
     } catch {
-      onError("Something went wrong while updating this leave request.");
-    } finally {
+      submittingRef.current = false;
       setBusy(false);
+      onError(
+        ERROR_KIND.GENERIC,
+        "Something went wrong while updating this leave request."
+      );
     }
   }
 
@@ -108,58 +139,55 @@ function PendingRequest({
 }
 
 function LeaveLoader({ token }) {
-  const mockView = useMemo(() => mapLeaveToView(mockLeavePending), []);
-  const [view, setView] = useState(USE_MOCK ? mockView : null);
+  const [phase, setPhase] = useState("loading");
+  const [view, setView] = useState(null);
   const [errorMessage, setErrorMessage] = useState("");
-  const [failed, setFailed] = useState(false);
-  const [loaded, setLoaded] = useState(USE_MOCK);
+  const [errorKind, setErrorKind] = useState(ERROR_KIND.GENERIC);
   const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
-    if (USE_MOCK) return undefined;
+    const trimmed = String(token || "").trim();
+    if (!trimmed) {
+      setErrorKind(ERROR_KIND.INVALID_LINK);
+      setErrorMessage(INVALID_LINK_MESSAGE);
+      setView(null);
+      setPhase("error");
+      return undefined;
+    }
 
-    let cancelled = false;
-    setLoaded(false);
+    const controller = new AbortController();
+    setPhase("loading");
 
     (async () => {
-      try {
-        const result = await getLeaveDetails(token);
-        if (cancelled) return;
+      const result = await getParentApprovalDetails(trimmed, controller.signal);
+      if (controller.signal.aborted || result.aborted) return;
 
-        if (!result.ok || !result.data) {
-          setErrorMessage(result.message || "Unable to load this leave request.");
-          setFailed(true);
-          setLoaded(true);
-          return;
-        }
-
-        setView(mapLeaveToView(result.data));
-        setFailed(false);
-        setLoaded(true);
-      } catch {
-        if (cancelled) return;
-        setErrorMessage("Something went wrong while loading this leave request.");
-        setFailed(true);
-        setLoaded(true);
+      if (!result.ok || !result.data) {
+        setErrorKind(result.kind || ERROR_KIND.GENERIC);
+        setErrorMessage(result.message || "Unable to load this leave request.");
+        setView(null);
+        setPhase("error");
+        return;
       }
+
+      setView(mapLeaveToView(result.data));
+      setPhase("ready");
     })();
 
     return () => {
-      cancelled = true;
+      controller.abort();
     };
   }, [token, retryCount]);
 
-  if (!loaded) return <LoadingState />;
+  if (phase === "loading") return <LoadingState />;
 
-  if (failed) {
+  if (phase === "error") {
     return (
-      <ErrorState
+      <ApprovalError
+        kind={errorKind}
         message={errorMessage}
         onRetry={() => {
-          setLoaded(false);
-          setFailed(false);
-          setErrorMessage("");
-          setView(null);
+          setPhase("loading");
           setRetryCount((count) => count + 1);
         }}
       />
@@ -174,39 +202,24 @@ function LeaveLoader({ token }) {
     <PendingRequest
       view={view}
       token={token}
-      onError={(message) => {
+      onError={(kind, message) => {
+        setErrorKind(kind);
         setErrorMessage(message);
-        setFailed(true);
+        setPhase("error");
       }}
     />
   );
 }
 
-export default function ParentApproval() {
-  const [query, setQuery] = useState({ token: "", preview: "" });
+function PreviewMode({ preview, token }) {
   const [previewBackToInfo, setPreviewBackToInfo] = useState(false);
-
-  useEffect(() => {
-    setQuery(readQuery());
-  }, []);
-
-  const { token, preview } = query;
-
-  const previewPending = useMemo(
-    () => mapLeaveToView(mockLeavePending),
-    []
-  );
-  const previewProcessed = useMemo(
-    () => mapLeaveToView(mockLeaveApproved),
-    []
-  );
+  const previewPending = useMemo(() => mapLeaveToView(mockLeavePending), []);
+  const previewProcessed = useMemo(() => mapLeaveToView(mockLeaveApproved), []);
 
   if (preview === UI_PREVIEW.LOADING) return <LoadingState />;
 
   if (preview === UI_PREVIEW.ERROR) {
-    return (
-      <ErrorState message="This link is invalid, expired, or the leave request could not be loaded." />
-    );
+    return <ErrorState message={INVALID_LINK_MESSAGE} />;
   }
 
   if (preview === UI_PREVIEW.SUCCESS && previewBackToInfo) {
@@ -232,6 +245,24 @@ export default function ParentApproval() {
     return (
       <PendingRequest view={previewPending} token={token} onError={() => {}} />
     );
+  }
+
+  return null;
+}
+
+export default function ParentApproval() {
+  const [query, setQuery] = useState({ token: "", preview: "", ready: false });
+
+  useEffect(() => {
+    setQuery({ ...readQuery(), ready: true });
+  }, []);
+
+  const { token, preview, ready } = query;
+
+  if (!ready) return <LoadingState />;
+
+  if (IS_DEV && Object.values(UI_PREVIEW).includes(preview)) {
+    return <PreviewMode preview={preview} token={token} />;
   }
 
   return <LeaveLoader key={token} token={token} />;

@@ -3,12 +3,14 @@ import "./globals.css";
 
 const quicksand = Quicksand({
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
 });
 
 export const metadata = {
   title: "Leave Request",
   description: "Review and approve a student leave request",
+  robots: { index: false, follow: false },
 };
 
 export const viewport = {
