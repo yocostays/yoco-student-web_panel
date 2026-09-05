@@ -1,13 +1,8 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import dayjs from "dayjs";
 import { submitDecision } from "@/lib/api";
-
-
-
-const PLAY_STORE_URL =
-  process.env.NEXT_PUBLIC_PLAY_STORE_URL ||
-  "https://play.google.com/store/apps/details?id=com.colladome.yoco";
+import { androidIntentUrl, isAndroidUserAgent, PLAY_STORE_URL } from "@/lib/app-links";
 
 function getStatusLabel(leaveStatus, approvalStatus) {
   const status = String(leaveStatus || "").toLowerCase();
@@ -101,14 +96,7 @@ export default function LeaveCard({ token, data }) {
       </Card>
 
       <Card>
-        <a
-            href={PLAY_STORE_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mx-auto flex w-fit animate-pulse items-center gap-2 rounded-full bg-gradient-to-r from-[var(--yoco-primary)] to-[#8b5cf6] px-6 py-3 text-sm font-bold text-white shadow-lg shadow-purple-300/50 transition-transform hover:scale-105 active:scale-95"
-        >
-            Download the Yoco Stays app
-        </a>
+        <OpenAppCta />
         <PromoPanel />
 
         <div className="text-center">
@@ -157,6 +145,36 @@ export default function LeaveCard({ token, data }) {
         </div>
         )}
     </div>
+  );
+}
+
+function OpenAppCta() {
+  const [href, setHref] = useState(PLAY_STORE_URL);
+  const [label, setLabel] = useState("Download the Yoco Stays app");
+  const [openInNewTab, setOpenInNewTab] = useState(true);
+
+  useEffect(() => {
+    if (!isAndroidUserAgent(navigator.userAgent)) return;
+
+    setHref(
+      androidIntentUrl({
+        host: window.location.host,
+        pathname: window.location.pathname,
+        search: window.location.search,
+      }),
+    );
+    setLabel("Open in Yoco Stays app");
+    setOpenInNewTab(false);
+  }, []);
+
+  return (
+    <a
+      href={href}
+      {...(openInNewTab ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+      className="mx-auto flex w-fit animate-pulse items-center gap-2 rounded-full bg-gradient-to-r from-[var(--yoco-primary)] to-[#8b5cf6] px-6 py-3 text-sm font-bold text-white shadow-lg shadow-purple-300/50 transition-transform hover:scale-105 active:scale-95"
+    >
+      {label}
+    </a>
   );
 }
 

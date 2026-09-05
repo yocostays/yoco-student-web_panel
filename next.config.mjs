@@ -27,6 +27,23 @@ const nextConfig = {
   },
   trailingSlash: true,
   allowedDevOrigins: [...lanOrigins(), ...extraDevOrigins],
+  async headers() {
+    const assetLinkHeaders = [
+      { key: "Content-Type", value: "application/json; charset=utf-8" },
+      { key: "X-Content-Type-Options", value: "nosniff" },
+    ];
+
+    return [
+      {
+        source: "/.well-known/assetlinks.json",
+        headers: assetLinkHeaders,
+      },
+      {
+        source: "/.well-known/assetlinks.json/",
+        headers: assetLinkHeaders,
+      },
+    ];
+  },
 };
 
 export default nextConfig;
