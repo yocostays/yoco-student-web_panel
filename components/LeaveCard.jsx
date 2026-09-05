@@ -78,7 +78,7 @@ export default function LeaveCard({ token, data }) {
           </span>
         </div>
 
-        <dl className="grid grid-cols-2 gap-3 text-sm">
+        <dl className="grid grid-cols-1 gap-3 text-sm">
             <Field label="Description" value={data.description || "—"} />
             <Field label="Applied On" value={dayjs(data.appliedOn).format("DD MMM YYYY, hh:mm A")} />
         </dl>
