@@ -268,8 +268,8 @@ export default function LeaveCard({ token, data, submitApproval, errorMessage })
     data?.leaveStatus === "pending" &&
     data.approvalStatus === "parent";
  const duration =
-   `${data?.days ? `${data.days} Days ` : ""}${data?.hours ? `${data.hours} Hrs` : ""}`.trim() ||
-   "0 Hrs";
+   `${data?.days ? `${data.days}\u00A0Days ` : ""}${data?.hours ? `${data.hours}\u00A0Hrs` : ""}`.trim() ||
+   "0\u00A0Hrs";
   const statusLabel = isUnavailable
     ? "expired"
     : getStatusLabel(data?.leaveStatus, data.approvalStatus);
@@ -328,31 +328,33 @@ export default function LeaveCard({ token, data, submitApproval, errorMessage })
           <ExpiredLeaveBody message={errorMessage} />
         ) : (
           <>
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex min-w-0 flex-1 items-start gap-3">
-                <div className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--yoco-primary)] text-sm font-medium text-white">
-                  {initials}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h2 className="break-words text-[15px] font-semibold leading-6 text-[#111827]">
-                    {data?.studentName}
-                  </h2>
-                  <p className="mt-0.5 break-words text-sm font-semibold leading-6 text-green-500">
-                    {data?.category?.toUpperCase()}
-                  </p>
-                  <p className="mt-0.5 text-xs font-semibold capitalize leading-5 text-[#6b7280]">
-                    {data?.leaveType} - {duration}
-                  </p>
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--yoco-primary)] text-sm font-medium text-white">
+                {initials}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex flex-col gap-0">
+                    <h2 className="break-words text-[15px] font-semibold leading-tight text-[#111827]">
+                      {data?.studentName}
+                    </h2>
+                    <p className="break-words text-sm font-semibold leading-tight text-green-500">
+                      {data?.category?.toUpperCase()}
+                    </p>
+                    <p className="whitespace-nowrap text-xs font-semibold capitalize leading-tight text-[#6b7280]">
+                      {data?.leaveType} - {duration}
+                    </p>
+                  </div>
+                  <span
+                    className={`mt-0.5 shrink-0 rounded-lg px-3 py-1.5 text-[12px] font-semibold capitalize leading-none shadow-sm ${statusClass}`}
+                  >
+                    {statusLabel}
+                  </span>
                 </div>
               </div>
-              <span
-                className={`mt-0.5 shrink-0 rounded-lg px-3 py-1.5 text-[12px] font-semibold capitalize leading-none shadow-sm ${statusClass}`}
-              >
-                {statusLabel}
-              </span>
             </div>
 
-            <dl className="grid grid-cols-1 gap-3  text-sm">
+            <dl className="grid grid-cols-1 gap-3  mt-4 text-sm">
               <Field label="Description" value={data?.description || "—"} />
               <Field label="Applied On" value={appliedOn} />
             </dl>
