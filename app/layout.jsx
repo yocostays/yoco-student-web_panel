@@ -1,4 +1,5 @@
 import { Quicksand } from "next/font/google";
+import Navbar from "@/components/Navbar";
 import ToastProvider from "@/components/ToastProvider";
 import "./globals.css";
 
@@ -24,8 +25,11 @@ export const viewport = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={quicksand.className}>
-        {children}
+      <body className={`${quicksand.className} flex min-h-dvh flex-col lg:h-dvh lg:overflow-hidden`}>
+        <Navbar />
+        <main className="w-full flex-1 pt-14 lg:min-h-0 lg:overflow-hidden lg:pt-0">
+          {children}
+        </main>
         <ToastProvider />
       </body>
     </html>

@@ -71,7 +71,7 @@ function OpenAppCta() {
 
 function Card({ title, children }) {
   return (
-    <article className="flex h-full flex-col overflow-hidden rounded-2xl bg-white shadow-lg lg:h-[540px]">
+    <article className="flex flex-col overflow-hidden rounded-2xl bg-white shadow-lg lg:h-full lg:min-h-0">
       {title && (
         <header className="shrink-0 bg-[var(--yoco-primary)] py-3 text-center text-sm font-semibold text-white">
           {title}
@@ -195,7 +195,20 @@ function ExpiredLeaveBody({ message }) {
 
 export default function LeaveCard({ token, data, submitApproval, errorMessage }) {
   const studentSchema = yup.object({
-    remark: yup.string().max(100).required("Remark is required."),
+    remark: yup
+      .string()
+      .transform((value) =>
+        String(value || "")
+          .replace(/[^A-Za-z0-9\s]/g, "")
+          .replace(/\s+/g, " ")
+          .trim(),
+      )
+      .required("Remark is required.")
+      .max(100, "Remark cannot exceed 100 characters.")
+      .matches(
+        /^[A-Za-z0-9]+(?: [A-Za-z0-9]+)*$/,
+        "Remark can only contain letters, numbers, and single spaces.",
+      ),
   });
 
   const defaultValues = {
@@ -216,9 +229,7 @@ export default function LeaveCard({ token, data, submitApproval, errorMessage })
   });
   const [status, setStatus] = useState(true);
   const [pending, setPending] = useState(null);
-  const [remark, setRemark] = useState("");
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
 
   const isUnavailable = Boolean(errorMessage) || !data;
   const initials = data?.studentName?.slice(0, 2).toUpperCase() || "?";
@@ -245,15 +256,7 @@ export default function LeaveCard({ token, data, submitApproval, errorMessage })
     ? dayjs(data.endDate).format("hh:mm A · DD MMM YYYY")
     : "—";
 
-  // async function confirm() {
-  //   setBusy(true);
-  //   setError("");
-  //   const res = await submitApproval({ token, action: pending, remark });
-  //   setBusy(false);
-  //   if (!res.ok) return setError(res.message);
-  //   setStatus(pending);
-  //   setPending(null);
-  // }
+
 
   const onSubmit = async (value) => {
     const payload = {
@@ -286,31 +289,31 @@ export default function LeaveCard({ token, data, submitApproval, errorMessage })
   }
 
   return (
-    <div className="mx-auto grid max-w-250 grid-cols-1 gap-4 p-4 lg:grid-cols-2">
+    <div className="mx-auto grid w-full max-w-250 grid-cols-1 gap-4 p-4 lg:h-full lg:min-h-0 lg:grid-cols-2">
       <Card title="Leave Request">
         {isUnavailable ? (
           <ExpiredLeaveBody message={errorMessage} />
         ) : (
           <>
         <div className="flex items-start justify-between gap-3">
-          <div className="flex min-w-0 items-start gap-2">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--yoco-primary)] text-sm font-medium text-white">
+          <div className="flex min-w-0 flex-1 items-start gap-3">
+            <div className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--yoco-primary)] text-sm font-medium text-white">
               {initials}
             </div>
-            <div className="min-w-0">
-              <h2 className="text-[14.5px] font-semibold text-[#111827]">
+            <div className="min-w-0 flex-1">
+              <h2 className="break-words text-[15px] font-semibold leading-6 text-[#111827]">
                 {data?.studentName}
               </h2>
-              <p className="text-sm font-semibold text-green-500">
+              <p className="mt-0.5 break-words text-sm font-semibold leading-6 text-green-500">
                 {data?.category?.toUpperCase()}
               </p>
-              <p className="text-xs font-semibold capitalize text-[#6b7280]">
-                {data?.leaveType} · {duration}
+              <p className="mt-0.5 text-xs font-semibold capitalize leading-5 text-[#6b7280]">
+                {data?.leaveType} - {duration}
               </p>
             </div>
           </div>
           <span
-            className={`shrink-0 rounded-lg px-3 py-1.5 text-[12px] font-semibold capitalize shadow-sm ${statusClass}`}
+            className={`mt-0.5 shrink-0 rounded-lg px-3 py-1.5 text-[12px] font-semibold capitalize leading-none shadow-sm ${statusClass}`}
           >
             {statusLabel}
           </span>
@@ -371,20 +374,20 @@ export default function LeaveCard({ token, data, submitApproval, errorMessage })
               {data.studentName}?
             </p>
             <label className="mt-4 block text-sm font-semibold text-[#1f2937]">
-              Remark
+              Remark <span className="text-red-500">*</span>
             </label>
             <textarea
               value={watch("remark")}
               onChange={(e) => {
-                let value;
-                value = e?.target?.value.replace(/^\s+/, "");
-                if (value.startsWith("0") && value.length > 1) {
-                  value = "0";
-                }
+                const value = String(e?.target?.value || "")
+                  .replace(/^\s+/, "")
+                  .replace(/[^A-Za-z0-9\s]/g, "")
+                  .replace(/\s{2,}/g, " ")
+                  .slice(0, 100);
                 setValue("remark", value, { shouldValidate: true });
               }}
               placeholder="Add a remark"
-              className="mt-2 w-full rounded-lg border border-gray-300 p-3 text-sm placeholder:text-gray-400 focus:border-[var(--yoco-primary)] focus:outline-none"
+              className="mt-2 w-full resize-none overflow-y-auto rounded-lg border border-gray-300 p-3 text-sm placeholder:text-gray-400 focus:border-[var(--yoco-primary)] focus:outline-none"
               rows={4}
             />
             {errors && (
