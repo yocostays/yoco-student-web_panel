@@ -55,17 +55,11 @@ export default async function Page({ searchParams }) {
 
   const result = await getLeaveDetails(token);
 
-  if (!result.ok) {
-    return (
-      <p className="p-6 text-center text-sm font-semibold text-[#1f2937]">
-        {result.message}
-      </p>
-    );
-  }
   return (
     <LeaveCard
       token={token}
-      data={result.data}
+      data={result.ok ? result.data : null}
+      errorMessage={result.ok ? "" : result.message}
       submitApproval={submitApproval}
     />
   );

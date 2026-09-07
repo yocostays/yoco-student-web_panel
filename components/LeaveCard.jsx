@@ -71,13 +71,13 @@ function OpenAppCta() {
 
 function Card({ title, children }) {
   return (
-    <article className="overflow-hidden rounded-2xl bg-white shadow-lg lg:h-[540px]">
+    <article className="flex h-full flex-col overflow-hidden rounded-2xl bg-white shadow-lg lg:h-[540px]">
       {title && (
-        <header className="bg-[var(--yoco-primary)] py-3 text-center text-sm font-semibold text-white">
+        <header className="shrink-0 bg-[var(--yoco-primary)] py-3 text-center text-sm font-semibold text-white">
           {title}
         </header>
       )}
-      <div className="flex flex-col gap-4 p-5 lg:p-7">{children}</div>
+      <div className="flex flex-1 flex-col gap-4 p-5 lg:p-7">{children}</div>
     </article>
   );
 }
@@ -107,7 +107,7 @@ function Field({ label, value, full, capitalize }) {
 
 function TimeBox({ label, value }) {
   return (
-    <div className="flex-1 rounded-lg bg-[#f4f5f7] px-2 py-1 lg:px-4 lg:py-2">
+    <div className="flex-1 rounded-lg bg-[#f4f5f7] px-3 py-2.5 lg:px-4 lg:py-3">
       <p className="text-[13px] text-[#4b5563] lg:text-[13.5px]">{label}</p>
       <p className="text-[12.5px] font-semibold text-[#1f2937] lg:text-[14px]">
         {value}
@@ -138,7 +138,62 @@ function PromoPanel({ blur = true }) {
   );
 }
 
-export default function LeaveCard({ token, data, submitApproval }) {
+function ExpiredLeaveBody({ message }) {
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center text-center">
+      <div className="mb-4 flex w-full items-start justify-end">
+        <span className="rounded-lg bg-red-50 px-3 py-1.5 text-[12px] font-semibold capitalize text-red-500 shadow-sm">
+          Expired
+        </span>
+      </div>
+      <div className="flex flex-1 flex-col items-center justify-center gap-4">
+        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#f3eefb]">
+          <svg
+            viewBox="0 0 24 24"
+            className="h-10 w-10 text-[var(--yoco-primary)]"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            aria-hidden="true"
+          >
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 7v5l3 2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </div>
+        <div>
+          <h2 className="text-lg font-bold text-[#111827]">
+            {message || "Link invalid or expired"}
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-[#6b7280]">
+            This leave approval link is no longer valid. Ask the hostel to send
+            a new link, or open the Yoco Stays app to check your child&apos;s
+            leave, mess, and hostel status.
+          </p>
+        </div>
+        <div className="grid w-full grid-cols-2 gap-3 text-left">
+          <div className="rounded-lg bg-[#f4f5f7] px-3 py-3">
+            <p className="text-[12px] uppercase tracking-wide text-[#6b7280]">
+              What happened
+            </p>
+            <p className="mt-1 text-sm font-semibold text-[#1f2937]">
+              Link expired or already used
+            </p>
+          </div>
+          <div className="rounded-lg bg-[#f4f5f7] px-3 py-3">
+            <p className="text-[12px] uppercase tracking-wide text-[#6b7280]">
+              Next step
+            </p>
+            <p className="mt-1 text-sm font-semibold text-[#1f2937]">
+              Use the app or a new link
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function LeaveCard({ token, data, submitApproval, errorMessage }) {
   const studentSchema = yup.object({
     remark: yup.string().max(100).required("Remark is required."),
   });
@@ -165,13 +220,30 @@ export default function LeaveCard({ token, data, submitApproval }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  const initials = data.studentName?.slice(0, 2).toUpperCase() || "?";
+  const isUnavailable = Boolean(errorMessage) || !data;
+  const initials = data?.studentName?.slice(0, 2).toUpperCase() || "?";
   const canAct =
-    data?.leaveStatus === "pending" && data.approvalStatus === "parent";
+    !isUnavailable &&
+    data?.leaveStatus === "pending" &&
+    data.approvalStatus === "parent";
   const duration =
-    `${data.days ? `${data.days} Days ` : ""}${data.hours ? `${data.hours} Hrs` : ""}`.trim() ||
+    `${data?.days ? `${data.days} Days ` : ""}${data?.hours ? `${data.hours} Hrs` : ""}`.trim() ||
     "—";
-  const statusLabel = getStatusLabel(data?.leaveStatus, data.approvalStatus);
+  const statusLabel = isUnavailable
+    ? "expired"
+    : getStatusLabel(data?.leaveStatus, data.approvalStatus);
+  const statusClass = isUnavailable
+    ? "bg-red-50 text-red-500"
+    : getStatusColor(data?.leaveStatus, data.approvalStatus);
+  const appliedOn = data?.appliedOn
+    ? dayjs(data.appliedOn).format("DD MMM YYYY, hh:mm A")
+    : "—";
+  const expectedOut = data?.startDate
+    ? dayjs(data.startDate).format("hh:mm A · DD MMM YYYY")
+    : "—";
+  const expectedIn = data?.endDate
+    ? dayjs(data.endDate).format("hh:mm A · DD MMM YYYY")
+    : "—";
 
   // async function confirm() {
   //   setBusy(true);
@@ -188,14 +260,23 @@ export default function LeaveCard({ token, data, submitApproval }) {
       action: pending,
       remark: value?.remark,
     };
+    setBusy(true);
     try {
-       const res = await submitApproval(payload);
-       if(res.ok){
-        setPending(null)
-       }
+      const res = await submitApproval(payload);
+      if (res?.ok) {
+        toast.success(
+          pending === "approved"
+            ? "Leave approved successfully."
+            : "Leave rejected successfully.",
+        );
+        handleClose();
+      } else {
+        toast.error(res?.message || "Unable to update leave status.");
+      }
     } catch (error) {
-      toast.error(error.message)
-      console.log(error, "eeeeeee");
+      toast.error(error?.message || "Something went wrong. Please try again.");
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -207,6 +288,10 @@ export default function LeaveCard({ token, data, submitApproval }) {
   return (
     <div className="mx-auto grid max-w-250 grid-cols-1 gap-4 p-4 lg:grid-cols-2">
       <Card title="Leave Request">
+        {isUnavailable ? (
+          <ExpiredLeaveBody message={errorMessage} />
+        ) : (
+          <>
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-start gap-2">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--yoco-primary)] text-sm font-medium text-white">
@@ -217,7 +302,7 @@ export default function LeaveCard({ token, data, submitApproval }) {
                 {data?.studentName}
               </h2>
               <p className="text-sm font-semibold text-green-500">
-                {data?.category.toUpperCase()}
+                {data?.category?.toUpperCase()}
               </p>
               <p className="text-xs font-semibold capitalize text-[#6b7280]">
                 {data?.leaveType} · {duration}
@@ -225,7 +310,7 @@ export default function LeaveCard({ token, data, submitApproval }) {
             </div>
           </div>
           <span
-            className={`shrink-0 rounded-lg px-3 py-1.5 text-[12px] font-semibold capitalize shadow-sm ${getStatusColor(data.leaveStatus, data.approvalStatus)}`}
+            className={`shrink-0 rounded-lg px-3 py-1.5 text-[12px] font-semibold capitalize shadow-sm ${statusClass}`}
           >
             {statusLabel}
           </span>
@@ -233,28 +318,18 @@ export default function LeaveCard({ token, data, submitApproval }) {
 
         <dl className="grid grid-cols-1 gap-3  text-sm">
           <Field label="Description" value={data?.description || "—"} />
-          <Field
-            label="Applied On"
-            value={dayjs(data.appliedOn).format("DD MMM YYYY, hh:mm A")}
-          />
+          <Field label="Applied On" value={appliedOn} />
         </dl>
 
         <div className="flex gap-3">
-          <TimeBox
-            label="Expected Out"
-            value={dayjs(data.startDate).format("hh:mm A · DD MMM YYYY")}
-          />
-          <TimeBox
-            label="Expected In"
-            value={dayjs(data.endDate).format("hh:mm A · DD MMM YYYY")}
-          />
+          <TimeBox label="Expected Out" value={expectedOut} />
+          <TimeBox label="Expected In" value={expectedIn} />
         </div>
 
         {canAct && (
           <div className="mt-2 flex gap-3">
             <button
               onClick={() => setPending("rejected")}
-              
               className="flex-1 rounded-lg border border-red-200 py-3 text-sm font-semibold text-red-600"
             >
               Reject
@@ -267,7 +342,8 @@ export default function LeaveCard({ token, data, submitApproval }) {
             </button>
           </div>
         )}
-        {/* )} */}
+          </>
+        )}
       </Card>
 
       <Card>
@@ -276,8 +352,8 @@ export default function LeaveCard({ token, data, submitApproval }) {
 
         <div className="text-center">
           <p className="text-base font-bold text-[#1f2937]">
-            Want to check {data.studentName}&apos;s Leave, Mess, and hostel
-            status?
+            Want to check {data?.studentName ? `${data.studentName}'s` : "your child's"}{" "}
+            Leave, Mess, and hostel status?
           </p>
           <p className="mt-2 text-sm text-[#6b7280]">
             Download the Yoco Stays app to stay connected with your child&apos;s
@@ -294,7 +370,9 @@ export default function LeaveCard({ token, data, submitApproval }) {
               {pending === "approved" ? "Approve" : "Reject"} leave for{" "}
               {data.studentName}?
             </p>
-            <label>Remark </label>
+            <label className="mt-4 block text-sm font-semibold text-[#1f2937]">
+              Remark
+            </label>
             <textarea
               value={watch("remark")}
               onChange={(e) => {
@@ -305,8 +383,8 @@ export default function LeaveCard({ token, data, submitApproval }) {
                 }
                 setValue("remark", value, { shouldValidate: true });
               }}
-              placeholder="Add a remark "
-              className="mt-4 w-full rounded-lg border border-gray-300 p-3 text-sm placeholder:text-gray-400 focus:border-[var(--yoco-primary)] focus:outline-none"
+              placeholder="Add a remark"
+              className="mt-2 w-full rounded-lg border border-gray-300 p-3 text-sm placeholder:text-gray-400 focus:border-[var(--yoco-primary)] focus:outline-none"
               rows={4}
             />
             {errors && (
