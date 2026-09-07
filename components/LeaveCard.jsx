@@ -39,16 +39,16 @@ function getStatusLabel(leaveStatus, approvalStatus) {
     // case status === "pending":
     //   return "pending";
     case status === "pending" && approval === "parent":
-      return "pending";
+      return "Pending from parent";
 
     case status === "pending" && approval === "warden":
-      return "pending from warden";
+      return "Pending from warden";
 
     // case status === "":
     //   return approval === "parent" ? "pending from warden" : "approved";
 
     case status === "rejected" && approval === "parent":
-      return "Rejected";
+      return "Rejected from parent";
 
     case status === "rejected" && approval === "warden":
       return  "rejected by warden";
