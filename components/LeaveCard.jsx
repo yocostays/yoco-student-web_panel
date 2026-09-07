@@ -267,9 +267,9 @@ export default function LeaveCard({ token, data, submitApproval, errorMessage })
     !isUnavailable &&
     data?.leaveStatus === "pending" &&
     data.approvalStatus === "parent";
-  const duration =
-    `${data?.days ? `${data.days} Days ` : ""}${data?.hours ? `${data.hours} Hrs` : ""}`.trim() ||
-    "—";
+ const duration =
+   `${data?.days ? `${data.days} Days ` : ""}${data?.hours ? `${data.hours} Hrs` : ""}`.trim() ||
+   "0 Hrs";
   const statusLabel = isUnavailable
     ? "expired"
     : getStatusLabel(data?.leaveStatus, data.approvalStatus);
