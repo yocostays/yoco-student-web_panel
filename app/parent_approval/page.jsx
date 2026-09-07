@@ -6,9 +6,14 @@ import { revalidatePath } from "next/cache";
 
 export const dynamic = "force-dynamic";
 
+// function getBaseUrl() {
+//   return "https://yocoapi.evdtechnology.com".replace(/\/$/, "");
+// }
+
 function getBaseUrl() {
-  return "https://yocoapi.evdtechnology.com".replace(/\/$/, "");
+  return "https://api.yocostays.com".replace(/\/$/, "");
 }
+
 
 async function getLeaveDetails(token) {
   const payload = { token };

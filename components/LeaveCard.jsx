@@ -7,24 +7,58 @@ import * as yup from 'yup'
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useForm } from "react-hook-form";
 import { toast } from "react-toastify";
+import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
+
+// function getStatusLabel(leaveStatus, approvalStatus) {
+//   const status = String(leaveStatus || "").toLowerCase();
+//   const approval = String(approvalStatus || "").toLowerCase();
+
+//   if (status === "pending") {
+//     return "pending";
+//   }
+//   if (status === "approved") {
+//     return approval === "parent" ? "pending from warden" : "approved";
+//   }
+//   if (status === "rejected") {
+//     return approval === "warden" ? "rejected by warden" : "rejected";
+//   }
+//   if (status.startsWith("cancel")) return "cancelled";
+
+//   return status || "—";
+// }
 
 function getStatusLabel(leaveStatus, approvalStatus) {
-
   const status = String(leaveStatus || "").toLowerCase();
   const approval = String(approvalStatus || "").toLowerCase();
 
-  if (status === "pending") {
-    return "pending";
-  }
-  if (status === "approved") {
-    return approval === "parent" ? "pending from warden" : "approved";
-  }
-  if (status === "rejected") {
-    return approval === "warden" ? "rejected by warden" : "rejected";
-  }
-  if (status.startsWith("cancel")) return "cancelled";
+  switch (true) {
+    // case status === "pending":
+    //   return "pending";
+    case status === "pending" && approval === "parent":
+      return "pending";
 
-  return status || "—";
+    case status === "pending" && approval === "warden":
+      return "pending from warden";
+
+    // case status === "":
+    //   return approval === "parent" ? "pending from warden" : "approved";
+
+    case status === "rejected" && approval === "parent":
+      return "Rejected";
+
+    case status === "rejected" && approval === "warden":
+      return  "rejected by warden";
+
+    case status.startsWith("cancel"):
+      return "cancelled";
+
+    default:
+      return status || "—";
+  }
 }
 
 function getStatusColor(leaveStatus, approvalStatus) {
@@ -215,19 +249,15 @@ export default function LeaveCard({ token, data, submitApproval, errorMessage })
     remark: "",
   };
   const {
-    register,
     handleSubmit,
     setValue,
     watch,
-    resetField,
-    clearErrors,
     reset,
     formState: { errors },
   } = useForm({
     defaultValues,
     resolver: yupResolver(studentSchema),
   });
-  const [status, setStatus] = useState(true);
   const [pending, setPending] = useState(null);
   const [busy, setBusy] = useState(false);
 
@@ -246,9 +276,12 @@ export default function LeaveCard({ token, data, submitApproval, errorMessage })
   const statusClass = isUnavailable
     ? "bg-red-50 text-red-500"
     : getStatusColor(data?.leaveStatus, data.approvalStatus);
-  const appliedOn = data?.appliedOn
-    ? dayjs(data.appliedOn).format("DD MMM YYYY, hh:mm A")
-    : "—";
+  // const appliedOn = data?.appliedOn
+  //   ? dayjs(data.appliedOn).format("DD MMM YYYY, hh:mm A")
+  //   : "—";
+ const appliedOn = data?.appliedOn
+   ? dayjs.utc(data.appliedOn).format("DD MMM YYYY, hh:mm A")
+   : "—";
   const expectedOut = data?.startDate
     ? dayjs(data.startDate).format("hh:mm A · DD MMM YYYY")
     : "—";
@@ -295,56 +328,56 @@ export default function LeaveCard({ token, data, submitApproval, errorMessage })
           <ExpiredLeaveBody message={errorMessage} />
         ) : (
           <>
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex min-w-0 flex-1 items-start gap-3">
-            <div className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--yoco-primary)] text-sm font-medium text-white">
-              {initials}
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex min-w-0 flex-1 items-start gap-3">
+                <div className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--yoco-primary)] text-sm font-medium text-white">
+                  {initials}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h2 className="break-words text-[15px] font-semibold leading-6 text-[#111827]">
+                    {data?.studentName}
+                  </h2>
+                  <p className="mt-0.5 break-words text-sm font-semibold leading-6 text-green-500">
+                    {data?.category?.toUpperCase()}
+                  </p>
+                  <p className="mt-0.5 text-xs font-semibold capitalize leading-5 text-[#6b7280]">
+                    {data?.leaveType} - {duration}
+                  </p>
+                </div>
+              </div>
+              <span
+                className={`mt-0.5 shrink-0 rounded-lg px-3 py-1.5 text-[12px] font-semibold capitalize leading-none shadow-sm ${statusClass}`}
+              >
+                {statusLabel}
+              </span>
             </div>
-            <div className="min-w-0 flex-1">
-              <h2 className="break-words text-[15px] font-semibold leading-6 text-[#111827]">
-                {data?.studentName}
-              </h2>
-              <p className="mt-0.5 break-words text-sm font-semibold leading-6 text-green-500">
-                {data?.category?.toUpperCase()}
-              </p>
-              <p className="mt-0.5 text-xs font-semibold capitalize leading-5 text-[#6b7280]">
-                {data?.leaveType} - {duration}
-              </p>
+
+            <dl className="grid grid-cols-1 gap-3  text-sm">
+              <Field label="Description" value={data?.description || "—"} />
+              <Field label="Applied On" value={appliedOn} />
+            </dl>
+
+            <div className="flex gap-3">
+              <TimeBox label="Expected Out" value={expectedOut} />
+              <TimeBox label="Expected In" value={expectedIn} />
             </div>
-          </div>
-          <span
-            className={`mt-0.5 shrink-0 rounded-lg px-3 py-1.5 text-[12px] font-semibold capitalize leading-none shadow-sm ${statusClass}`}
-          >
-            {statusLabel}
-          </span>
-        </div>
 
-        <dl className="grid grid-cols-1 gap-3  text-sm">
-          <Field label="Description" value={data?.description || "—"} />
-          <Field label="Applied On" value={appliedOn} />
-        </dl>
-
-        <div className="flex gap-3">
-          <TimeBox label="Expected Out" value={expectedOut} />
-          <TimeBox label="Expected In" value={expectedIn} />
-        </div>
-
-        {canAct && (
-          <div className="mt-2 flex gap-3">
-            <button
-              onClick={() => setPending("rejected")}
-              className="flex-1 rounded-lg border border-red-200 py-3 text-sm font-semibold text-red-600"
-            >
-              Reject
-            </button>
-            <button
-              onClick={() => setPending("approved")}
-              className="flex-1 rounded-lg bg-[var(--yoco-primary)] py-3 text-sm font-semibold text-white"
-            >
-              Approve
-            </button>
-          </div>
-        )}
+            {canAct && (
+              <div className="mt-2 flex gap-3">
+                <button
+                  onClick={() => setPending("rejected")}
+                  className="flex-1 rounded-lg border border-red-200 py-3 text-sm font-semibold text-red-600"
+                >
+                  Reject
+                </button>
+                <button
+                  onClick={() => setPending("approved")}
+                  className="flex-1 rounded-lg bg-[var(--yoco-primary)] py-3 text-sm font-semibold text-white"
+                >
+                  Approve
+                </button>
+              </div>
+            )}
           </>
         )}
       </Card>
@@ -355,7 +388,8 @@ export default function LeaveCard({ token, data, submitApproval, errorMessage })
 
         <div className="text-center">
           <p className="text-base font-bold text-[#1f2937]">
-            Want to check {data?.studentName ? `${data.studentName}'s` : "your child's"}{" "}
+            Want to check{" "}
+            {data?.studentName ? `${data.studentName}'s` : "your child's"}{" "}
             Leave, Mess, and hostel status?
           </p>
           <p className="mt-2 text-sm text-[#6b7280]">
@@ -370,8 +404,16 @@ export default function LeaveCard({ token, data, submitApproval, errorMessage })
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-[420px] rounded-2xl bg-white p-6 shadow-xl">
             <p className="text-base font-semibold text-[#1f2937]">
-              {pending === "approved" ? "Approve" : "Reject"} leave for{" "}
-              {data.studentName}?
+              <span
+                className={
+                  pending === "rejected"
+                    ? "text-red-600"
+                    : "text-[var(--yoco-primary)]"
+                }
+              >
+                {pending === "approved" ? "Approve" : "Reject"}
+              </span>{" "}
+              leave for {data.studentName}?
             </p>
             <label className="mt-4 block text-sm font-semibold text-[#1f2937]">
               Remark <span className="text-red-500">*</span>
@@ -399,8 +441,8 @@ export default function LeaveCard({ token, data, submitApproval, errorMessage })
               <button
                 // onClick={() => setPending(null)}
                 // onClick={()=> reset({...defaultValues})}.
-                onClick={()=>{
-                  handleClose()
+                onClick={() => {
+                  handleClose();
                 }}
                 disabled={busy}
                 className="flex-1 rounded-lg border border-gray-300 py-2.5 text-sm font-semibold text-[#1f2937]"
@@ -410,7 +452,11 @@ export default function LeaveCard({ token, data, submitApproval, errorMessage })
               <button
                 onClick={handleSubmit(onSubmit)}
                 disabled={busy}
-                className="flex-1 rounded-lg bg-[var(--yoco-primary)] py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+                className={`flex-1 rounded-lg py-2.5 text-sm font-semibold text-white disabled:opacity-50 ${
+                  pending === "rejected"
+                    ? "bg-[#EE5D65]"
+                    : "bg-[var(--yoco-primary)]"
+                }`}
               >
                 {busy ? "Submitting…" : "Confirm"}
               </button>
