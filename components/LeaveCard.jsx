@@ -228,6 +228,7 @@ function ExpiredLeaveBody({ message }) {
 }
 
 export default function LeaveCard({ token, data, submitApproval, errorMessage }) {
+  console.log(data,"sssss")
   const studentSchema = yup.object({
     remark: yup
       .string()
@@ -267,9 +268,12 @@ export default function LeaveCard({ token, data, submitApproval, errorMessage })
     !isUnavailable &&
     data?.leaveStatus === "pending" &&
     data.approvalStatus === "parent";
- const duration =
-   `${data?.days ? `${data.days}\u00A0Days ` : ""}${data?.hours ? `${data.hours}\u00A0Hrs` : ""}`.trim() ||
-   "0\u00A0Hrs";
+//  const duration =
+//    `${data?.days ? `${data.days}\u00A0Days ` : ""}${data?.hours ? `${data.hours}\u00A0Hrs` : ""}`.trim() ||
+//    "0\u00A0Hrs";
+const duration =
+  `${data?.days ? `${data.days}\u00A0Days ` : ""}${data?.hours ? `${data.hours}\u00A0Hrs ` : ""}${data?.minutes ? `${data.minutes}\u00A0Mins` : ""}`.trim() ||
+  "0\u00A0Hrs";
   const statusLabel = isUnavailable
     ? "expired"
     : getStatusLabel(data?.leaveStatus, data.approvalStatus);
