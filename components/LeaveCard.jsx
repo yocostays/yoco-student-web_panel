@@ -228,7 +228,6 @@ function ExpiredLeaveBody({ message }) {
 }
 
 export default function LeaveCard({ token, data, submitApproval, errorMessage }) {
-  console.log(data,"sssss")
   const studentSchema = yup.object({
     remark: yup
       .string()
